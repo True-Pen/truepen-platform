@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const analysisMetrics = [
   { label: "AI-Likeness", score: 23, max: 100, accent: "from-sky-400 to-blue-500" },
   { label: "Human Authenticity", score: 87, max: 100, accent: "from-blue-400 to-indigo-500" },
@@ -101,9 +103,9 @@ export default function Home() {
       {/* navbar */}
       <header className="relative z-10 border-b border-white/[0.06] bg-[#06080f]/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
-          <a href="#" className="shrink-0">
+          <Link href="/" className="shrink-0">
             <TruePenLogo />
-          </a>
+          </Link>
           <div className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm text-zinc-400 transition-colors hover:text-white">
               Features
@@ -116,18 +118,18 @@ export default function Home() {
             </a>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="#"
+            <Link
+              href="/login"
               className="hidden rounded-lg px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:text-white sm:inline-block"
             >
               Sign In
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/register"
               className="rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500"
             >
               Get Started
-            </a>
+            </Link>
           </div>
         </nav>
       </header>
@@ -157,12 +159,12 @@ export default function Home() {
                 human authenticity, and academic quality.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <a
-                  href="#"
+                <Link
+                  href="/register"
                   className="inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-400 hover:to-indigo-500"
                 >
                   Start Free Analysis
-                </a>
+                </Link>
                 <a
                   href="#"
                   className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-6 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
@@ -346,12 +348,12 @@ export default function Home() {
               <p className="mx-auto mt-3 max-w-lg text-zinc-400">
                 Join students who use TruePen to understand their writing—not just pass a check.
               </p>
-              <a
-                href="#"
+              <Link
+                href="/register"
                 className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-8 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-400 hover:to-indigo-500"
               >
                 Start Free Analysis
-              </a>
+              </Link>
             </div>
           </div>
         </section>
