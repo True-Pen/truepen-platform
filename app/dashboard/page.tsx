@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
-export const dynamic = "force-dynamic";
 import { LogoutButton } from "@/components/logout-button";
 import { TruePenBackground } from "@/components/truepen-background";
 import { TruePenLogo } from "@/components/truepen-logo";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -74,13 +74,12 @@ export default async function DashboardPage() {
             Paste or upload an essay to see AI-likeness, authenticity, and academic
             quality scores.
           </p>
-          <button
-            type="button"
-            disabled
-            className="mt-6 inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl bg-gradient-to-r from-blue-500/50 to-indigo-600/50 px-6 text-sm font-semibold text-white/70"
+          <Link
+            href="/analyze"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500"
           >
-            New analysis (coming soon)
-          </button>
+            New analysis
+          </Link>
         </div>
 
         <p className="mt-8 text-center text-sm text-zinc-500">
