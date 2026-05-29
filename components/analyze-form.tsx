@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MetricBar } from "@/components/metric-bar";
+import { createClient } from "@/lib/supabase/client";
 
 const DEMO_METRICS = [
   {
@@ -41,12 +42,44 @@ export function AnalyzeForm() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function handleAnalyze() {
     if (!text.trim()) return;
     setLoading(true);
     setShowResults(false);
+    setSaveError(null);
+
+    const aiScore = DEMO_METRICS[0]?.score ?? 0;
+    const humanScore = DEMO_METRICS[1]?.score ?? 0;
+    const academicScore = DEMO_METRICS[2]?.score ?? 0;
+    const feedback = DEMO_FEEDBACK.join("\n");
+
     await new Promise((resolve) => setTimeout(resolve, 800));
+
+    try {
+      const supabase = createClient();
+      const { data, error: userError } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+      if (!data.user) throw new Error("You’re not signed in. Please sign in and try again.");
+
+      const { error: insertError } = await supabase.from("analyses").insert({
+        user_id: data.user.id,
+        text,
+        ai_score: aiScore,
+        human_score: humanScore,
+        academic_score: academicScore,
+        feedback,
+      });
+
+      if (insertError) throw insertError;
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Saving failed. Please try again.";
+      setSaveError(message);
+    }
+
     setLoading(false);
     setShowResults(true);
   }
@@ -101,6 +134,11 @@ export function AnalyzeForm() {
         )}
         {showResults && !loading && (
           <div className="space-y-4">
+            {saveError && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {saveError}
+              </div>
+            )}
             <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5">
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-sm font-medium text-white">Analysis complete</span>
