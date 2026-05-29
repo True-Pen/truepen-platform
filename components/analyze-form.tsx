@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { MetricBar } from "@/components/metric-bar";
+import { FREE_LIMIT_MESSAGE } from "@/lib/analysis-limits";
 import {
-  FREE_LIMIT_MESSAGE,
-  FREE_MONTHLY_ANALYSIS_LIMIT,
-  getCurrentMonthStartIso,
-} from "@/lib/analysis-limits";
+  isAtFreeMonthlyLimit,
+  recordAnalysisUsage,
+} from "@/lib/analysis-usage";
 import { createClient } from "@/lib/supabase/client";
 import { extractTextFromFile } from "@/lib/extract-document-text";
 
@@ -105,15 +105,7 @@ export function AnalyzeForm() {
       if (userError) throw userError;
       if (!data.user) throw new Error("You’re not signed in. Please sign in and try again.");
 
-      const { count, error: countError } = await supabase
-        .from("analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", data.user.id)
-        .gte("created_at", getCurrentMonthStartIso());
-
-      if (countError) throw countError;
-
-      if ((count ?? 0) >= FREE_MONTHLY_ANALYSIS_LIMIT) {
+      if (await isAtFreeMonthlyLimit(supabase, data.user)) {
         setLimitMessage(FREE_LIMIT_MESSAGE);
       } else {
         const { error: insertError } = await supabase.from("analyses").insert({
@@ -126,6 +118,8 @@ export function AnalyzeForm() {
         });
 
         if (insertError) throw insertError;
+
+        await recordAnalysisUsage(supabase, data.user.id);
       }
     } catch (e) {
       const message =

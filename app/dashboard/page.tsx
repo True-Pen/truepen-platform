@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardAnalysesList } from "@/components/dashboard-analyses-list";
 import { LogoutButton } from "@/components/logout-button";
 import { TruePenBackground } from "@/components/truepen-background";
 import { TruePenLogo } from "@/components/truepen-logo";
+import { getMonthlyUsageCount } from "@/lib/analysis-usage";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -33,12 +35,7 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-  const monthStartIso = monthStart.toISOString();
-
-  const [{ data: recentAnalyses, error: recentError }, { count: monthCount }] =
+  const [{ data: recentAnalyses, error: recentError }, analysesThisMonth] =
     await Promise.all([
       supabase
         .from("analyses")
@@ -46,11 +43,7 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(8),
-      supabase
-        .from("analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .gte("created_at", monthStartIso),
+      getMonthlyUsageCount(supabase, user.id).catch(() => 0),
     ]);
 
   if (recentError) {
@@ -59,7 +52,6 @@ export default async function DashboardPage() {
   }
 
   const latest = recentAnalyses?.[0];
-  const analysesThisMonth = monthCount ?? 0;
   const latestDate = latest?.created_at ? formatShortDate(latest.created_at) : "—";
 
   return (
@@ -142,54 +134,18 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {recentError && (
-            <div className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
-              Couldn&apos;t load your saved analyses right now. Please refresh and try again.
-            </div>
-          )}
-
-          {!recentError && (!recentAnalyses || recentAnalyses.length === 0) && (
-            <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-8 text-center">
-              <p className="text-sm text-zinc-500">
-                No saved analyses yet. Run your first one to see it here.
-              </p>
-            </div>
-          )}
-
-          {!recentError && recentAnalyses && recentAnalyses.length > 0 && (
-            <div className="mt-4 space-y-3">
-              {recentAnalyses.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/analysis/${a.id}`}
-                  className="block rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5 transition hover:border-blue-500/30 hover:bg-white/[0.06]"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-white">
-                      {formatShortDate(a.created_at)}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-zinc-300">
-                        AI {a.ai_score}/100
-                      </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-zinc-300">
-                        Human {a.human_score}/100
-                      </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-zinc-300">
-                        Academic {a.academic_score}/100
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                    {previewText(a.text)}
-                  </p>
-                  <p className="mt-3 text-xs font-medium text-blue-400">
-                    View details →
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
+          <DashboardAnalysesList
+            loadError={!!recentError}
+            analyses={(recentAnalyses ?? []).map((a) => ({
+              id: a.id,
+              dateLabel: formatShortDate(a.created_at),
+              preview: previewText(a.text),
+              searchText: a.text,
+              aiScore: a.ai_score,
+              humanScore: a.human_score,
+              academicScore: a.academic_score,
+            }))}
+          />
         </section>
 
         <div className="mt-8 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 text-center">

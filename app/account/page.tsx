@@ -3,10 +3,8 @@ import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/logout-button";
 import { TruePenBackground } from "@/components/truepen-background";
 import { TruePenLogo } from "@/components/truepen-logo";
-import {
-  FREE_MONTHLY_ANALYSIS_LIMIT,
-  getCurrentMonthStartIso,
-} from "@/lib/analysis-limits";
+import { FREE_MONTHLY_ANALYSIS_LIMIT } from "@/lib/analysis-limits";
+import { getMonthlyUsageCount } from "@/lib/analysis-usage";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -32,13 +30,12 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  const { count: monthCount } = await supabase
-    .from("analyses")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .gte("created_at", getCurrentMonthStartIso());
-
-  const analysesUsed = monthCount ?? 0;
+  let analysesUsed = 0;
+  try {
+    analysesUsed = await getMonthlyUsageCount(supabase, user.id);
+  } catch {
+    analysesUsed = 0;
+  }
   const usagePct = Math.min(
     100,
     (analysesUsed / FREE_MONTHLY_ANALYSIS_LIMIT) * 100,

@@ -33,34 +33,108 @@ const features = [
   },
 ];
 
+const showcaseItems = [
+  {
+    title: "DOCX & PDF upload",
+    description:
+      "Paste text or upload Word and PDF files. TruePen extracts your draft so you can analyze in seconds.",
+    icon: "↑",
+  },
+  {
+    title: "Analysis history",
+    description:
+      "Every saved analysis lives in your dashboard. Revisit scores, feedback, and full text anytime.",
+    icon: "◷",
+  },
+  {
+    title: "Free plan — 3 per month",
+    description:
+      "Start with three analyses each month at no cost. Perfect for essays, reports, and assignments.",
+    icon: "3",
+  },
+  {
+    title: "Future AI scoring",
+    description:
+      "Pro will unlock deeper, AI-powered scoring and advanced feedback—coming soon to TruePen.",
+    icon: "✦",
+  },
+];
+
+const howItWorksSteps = [
+  {
+    step: "01",
+    title: "Upload your document",
+    text: "Paste your draft or upload a .docx or .pdf file. Your text is ready to analyze instantly.",
+  },
+  {
+    step: "02",
+    title: "Analyze your writing",
+    text: "Run an analysis to see AI-likeness, human authenticity, and academic quality scores.",
+  },
+  {
+    step: "03",
+    title: "Review feedback",
+    text: "Read clear, student-friendly feedback bullets that highlight what to improve next.",
+  },
+  {
+    step: "04",
+    title: "Improve your work",
+    text: "Revise with confidence, save your progress, and build a history of stronger submissions.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "Is my document private?",
+    answer:
+      "Yes. Your analyses are tied to your account and only visible to you. We don’t share your writing with other users.",
+  },
+  {
+    question: "Does TruePen store my files?",
+    answer:
+      "We extract text from uploads to run analysis—we don’t keep your original .docx or .pdf files on our servers. Saved analyses store the extracted text and results in your account.",
+  },
+  {
+    question: "What file formats are supported?",
+    answer:
+      "You can paste text directly or upload .docx and .pdf files. Other formats aren’t supported yet.",
+  },
+  {
+    question: "Is TruePen free?",
+    answer:
+      "Yes. The Free plan includes 3 analyses per month, document upload, demo scoring, and analysis history. Pro with unlimited analyses is coming soon.",
+  },
+];
+
 const pricingPlans = [
   {
     name: "Free",
     price: "€0",
-    period: "forever",
-    description: "Perfect for trying TruePen on a single essay or assignment.",
+    period: "/month",
+    description: "Perfect for trying TruePen on real assignments.",
     features: [
       "3 analyses per month",
-      "Core AI-likeness score",
-      "Basic authenticity report",
-      "Email support",
+      "DOCX/PDF upload",
+      "Demo scoring",
+      "Analysis history",
     ],
-    cta: "Start Free",
+    cta: "Get Started",
+    href: "/register",
     highlighted: false,
   },
   {
     name: "Pro",
-    price: "€3.99",
+    price: "€4.99",
     period: "/month",
-    description: "For students who write often and want deeper, unlimited insight.",
+    description: "For students who write often and want unlimited insight.",
     features: [
       "Unlimited analyses",
-      "Full authenticity breakdown",
-      "Academic quality scoring",
-      "Priority support",
-      "Exportable reports",
+      "Priority processing",
+      "Future AI-powered scoring",
+      "Advanced feedback",
     ],
-    cta: "Get Pro",
+    cta: "View plans",
+    href: "/pricing",
     highlighted: true,
   },
 ];
@@ -71,9 +145,7 @@ function TruePenLogo({ className = "" }: { className?: string }) {
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
         <span className="text-sm font-bold text-white">TP</span>
       </div>
-      <span className="text-lg font-semibold tracking-tight text-white">
-        TruePen
-      </span>
+      <span className="text-lg font-semibold tracking-tight text-white">TruePen</span>
     </div>
   );
 }
@@ -93,14 +165,12 @@ function MetricBar({ score, max, accent }: { score: number; max: number; accent:
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#06080f] font-sans text-zinc-300">
-      {/* ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-blue-600/20 blur-[120px]" />
         <div className="absolute top-1/3 -right-32 h-80 w-80 rounded-full bg-indigo-600/15 blur-[100px]" />
         <div className="absolute bottom-0 -left-24 h-64 w-64 rounded-full bg-sky-500/10 blur-[80px]" />
       </div>
 
-      {/* navbar */}
       <header className="relative z-10 border-b border-white/[0.06] bg-[#06080f]/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
           <Link href="/" className="shrink-0">
@@ -110,11 +180,17 @@ export default function Home() {
             <a href="#features" className="text-sm text-zinc-400 transition-colors hover:text-white">
               Features
             </a>
-            <a href="#pricing" className="text-sm text-zinc-400 transition-colors hover:text-white">
-              Pricing
+            <a href="#showcase" className="text-sm text-zinc-400 transition-colors hover:text-white">
+              Product
             </a>
             <a href="#how-it-works" className="text-sm text-zinc-400 transition-colors hover:text-white">
               How It Works
+            </a>
+            <a href="#pricing" className="text-sm text-zinc-400 transition-colors hover:text-white">
+              Pricing
+            </a>
+            <a href="#faq" className="text-sm text-zinc-400 transition-colors hover:text-white">
+              FAQ
             </a>
           </div>
           <div className="flex items-center gap-3">
@@ -155,8 +231,8 @@ export default function Home() {
                 .
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
-                TruePen helps students analyze academic writing for AI-like patterns,
-                human authenticity, and academic quality.
+                TruePen helps students analyze academic writing for AI-like patterns, human
+                authenticity, and academic quality.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
@@ -166,15 +242,14 @@ export default function Home() {
                   Start Free Analysis
                 </Link>
                 <a
-                  href="#"
+                  href="#how-it-works"
                   className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-6 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
                 >
-                  View Demo
+                  See how it works
                 </a>
               </div>
             </div>
 
-            {/* analysis preview */}
             <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-6 shadow-2xl shadow-black/40 backdrop-blur-sm">
               <div className="mb-5 flex items-center justify-between">
                 <span className="text-sm font-medium text-white">Analysis Preview</span>
@@ -236,35 +311,47 @@ export default function Home() {
           </div>
         </section>
 
+        {/* showcase */}
+        <section id="showcase" className="py-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Built for real student workflows
+              </h2>
+              <p className="mt-4 text-zinc-400">
+                Upload, analyze, save, and improve—all in one place.
+              </p>
+            </div>
+            <div className="mt-14 grid gap-6 sm:grid-cols-2">
+              {showcaseItems.map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-8 transition hover:border-blue-500/30"
+                >
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-lg font-semibold text-blue-300">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* how it works */}
-        <section id="how-it-works" className="py-20">
+        <section id="how-it-works" className="border-t border-white/[0.06] bg-[#080b14]/50 py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 How it works
               </h2>
               <p className="mt-4 text-zinc-400">
-                Three steps from draft to confident submission.
+                Four simple steps from upload to a stronger final draft.
               </p>
             </div>
-            <div className="mt-14 grid gap-8 md:grid-cols-3">
-              {[
-                {
-                  step: "01",
-                  title: "Upload your draft",
-                  text: "Paste or upload your essay. We analyze structure and language—not your identity.",
-                },
-                {
-                  step: "02",
-                  title: "Review your scores",
-                  text: "See AI-likeness, authenticity, and academic quality in one clear dashboard.",
-                },
-                {
-                  step: "03",
-                  title: "Revise with purpose",
-                  text: "Use targeted suggestions to strengthen your voice before you submit.",
-                },
-              ].map((item) => (
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {howItWorksSteps.map((item) => (
                 <div
                   key={item.step}
                   className="relative rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent p-8"
@@ -281,7 +368,7 @@ export default function Home() {
         </section>
 
         {/* pricing */}
-        <section id="pricing" className="border-t border-white/[0.06] bg-[#080b14]/50 py-20">
+        <section id="pricing" className="py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
@@ -303,7 +390,7 @@ export default function Home() {
                 >
                   {plan.highlighted && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 px-3 py-1 text-xs font-semibold text-white">
-                      Most popular
+                      Pro
                     </span>
                   )}
                   <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
@@ -322,8 +409,8 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#"
+                  <Link
+                    href={plan.href}
                     className={`mt-8 inline-flex h-11 items-center justify-center rounded-xl text-sm font-semibold transition ${
                       plan.highlighted
                         ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:from-blue-400 hover:to-indigo-500"
@@ -331,28 +418,60 @@ export default function Home() {
                     }`}
                   >
                     {plan.cta}
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* footer CTA */}
+        {/* faq */}
+        <section id="faq" className="border-t border-white/[0.06] bg-[#080b14]/50 py-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Frequently asked questions
+              </h2>
+              <p className="mt-4 text-zinc-400">
+                Quick answers about privacy, files, and pricing.
+              </p>
+            </div>
+            <div className="mx-auto mt-14 max-w-3xl space-y-4">
+              {faqItems.map((item) => (
+                <details
+                  key={item.question}
+                  className="group rounded-2xl border border-white/[0.08] bg-white/[0.03] open:border-blue-500/30 open:bg-white/[0.05]"
+                >
+                  <summary className="cursor-pointer list-none px-6 py-5 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-center justify-between gap-4">
+                      {item.question}
+                      <span className="text-blue-400 transition group-open:rotate-45">+</span>
+                    </span>
+                  </summary>
+                  <p className="border-t border-white/[0.06] px-6 pb-5 pt-0 text-sm leading-relaxed text-zinc-400">
+                    {item.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* final CTA */}
         <section className="py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-br from-blue-600/20 via-indigo-600/10 to-transparent px-8 py-14 text-center sm:px-12">
               <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                Ready to prove it&apos;s your work?
+                Start your first analysis today
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-zinc-400">
-                Join students who use TruePen to understand their writing—not just pass a check.
+                Create a free account, upload your draft, and see demo scores in minutes.
               </p>
               <Link
                 href="/register"
                 className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-8 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-400 hover:to-indigo-500"
               >
-                Start Free Analysis
+                Get Started
               </Link>
             </div>
           </div>
