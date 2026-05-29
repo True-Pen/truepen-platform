@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MetricBar } from "@/components/metric-bar";
 import { createClient } from "@/lib/supabase/client";
+import { extractTextFromFile } from "@/lib/extract-document-text";
 
 const DEMO_METRICS = [
   {
@@ -35,14 +36,45 @@ const DEMO_FEEDBACK = [
   "Consider adding more personal framing in the conclusion to strengthen authenticity.",
 ];
 
+const ACCEPTED_TYPES =
+  ".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 const inputClass =
   "w-full min-h-[280px] resize-y rounded-xl border border-white/10 bg-[#0a0e18] px-4 py-3 text-sm leading-relaxed text-white placeholder:text-zinc-500 outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20";
 
 export function AnalyzeForm() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadedFileName(null);
+    setShowResults(false);
+    setSaveError(null);
+
+    try {
+      const extracted = await extractTextFromFile(file);
+      setText(extracted);
+      setUploadedFileName(file.name);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not read this file. Please try again.";
+      setUploadError(message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleAnalyze() {
     if (!text.trim()) return;
@@ -85,6 +117,7 @@ export function AnalyzeForm() {
   }
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const busy = loading || uploading;
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -92,12 +125,63 @@ export function AnalyzeForm() {
         <label htmlFor="draft" className="mb-2 block text-sm font-medium text-zinc-300">
           Your draft
         </label>
+
+        <div className="mb-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_TYPES}
+            className="hidden"
+            onChange={handleFileSelect}
+            disabled={busy}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-white">Upload document</p>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                .docx or .pdf — text will fill the box below
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-zinc-200 transition hover:border-blue-500/40 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading ? "Extracting…" : "Choose file"}
+            </button>
+          </div>
+
+          {uploading && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-blue-300">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-400" />
+              Extracting text from your document…
+            </div>
+          )}
+
+          {!uploading && uploadedFileName && !uploadError && (
+            <p className="mt-3 text-sm text-emerald-400">
+              Loaded text from <span className="font-medium">{uploadedFileName}</span>
+            </p>
+          )}
+
+          {uploadError && (
+            <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              {uploadError}
+            </div>
+          )}
+        </div>
+
         <textarea
           id="draft"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (uploadError) setUploadError(null);
+          }}
           placeholder="Paste your essay, report, or assignment here…"
           className={inputClass}
+          disabled={uploading}
         />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-500">
@@ -106,7 +190,7 @@ export function AnalyzeForm() {
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={loading || !text.trim()}
+            disabled={busy || !text.trim()}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Analyzing…" : "Analyze"}
@@ -122,7 +206,7 @@ export function AnalyzeForm() {
         {!showResults && !loading && (
           <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
             <p className="text-sm text-zinc-500">
-              Paste your text and click Analyze to see scores and feedback.
+              Paste or upload your text, then click Analyze to see scores and feedback.
             </p>
           </div>
         )}
