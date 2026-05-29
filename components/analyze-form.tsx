@@ -243,7 +243,7 @@ export function AnalyzeForm() {
               <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-4 py-4">
                 <p className="text-sm leading-relaxed text-blue-100">{limitMessage}</p>
                 <Link
-                  href="/#pricing"
+                  href="/pricing"
                   className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
                 >
                   View Pro plans
