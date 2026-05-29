@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { MetricBar } from "@/components/metric-bar";
+import {
+  FREE_LIMIT_MESSAGE,
+  FREE_MONTHLY_ANALYSIS_LIMIT,
+  getCurrentMonthStartIso,
+} from "@/lib/analysis-limits";
 import { createClient } from "@/lib/supabase/client";
 import { extractTextFromFile } from "@/lib/extract-document-text";
 
@@ -48,6 +54,7 @@ export function AnalyzeForm() {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -62,6 +69,7 @@ export function AnalyzeForm() {
     setUploadedFileName(null);
     setShowResults(false);
     setSaveError(null);
+    setLimitMessage(null);
 
     try {
       const extracted = await extractTextFromFile(file);
@@ -81,6 +89,7 @@ export function AnalyzeForm() {
     setLoading(true);
     setShowResults(false);
     setSaveError(null);
+    setLimitMessage(null);
 
     const aiScore = DEMO_METRICS[0]?.score ?? 0;
     const humanScore = DEMO_METRICS[1]?.score ?? 0;
@@ -96,16 +105,28 @@ export function AnalyzeForm() {
       if (userError) throw userError;
       if (!data.user) throw new Error("You’re not signed in. Please sign in and try again.");
 
-      const { error: insertError } = await supabase.from("analyses").insert({
-        user_id: data.user.id,
-        text,
-        ai_score: aiScore,
-        human_score: humanScore,
-        academic_score: academicScore,
-        feedback,
-      });
+      const { count, error: countError } = await supabase
+        .from("analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", data.user.id)
+        .gte("created_at", getCurrentMonthStartIso());
 
-      if (insertError) throw insertError;
+      if (countError) throw countError;
+
+      if ((count ?? 0) >= FREE_MONTHLY_ANALYSIS_LIMIT) {
+        setLimitMessage(FREE_LIMIT_MESSAGE);
+      } else {
+        const { error: insertError } = await supabase.from("analyses").insert({
+          user_id: data.user.id,
+          text,
+          ai_score: aiScore,
+          human_score: humanScore,
+          academic_score: academicScore,
+          feedback,
+        });
+
+        if (insertError) throw insertError;
+      }
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Saving failed. Please try again.";
@@ -218,6 +239,17 @@ export function AnalyzeForm() {
         )}
         {showResults && !loading && (
           <div className="space-y-4">
+            {limitMessage && (
+              <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-4 py-4">
+                <p className="text-sm leading-relaxed text-blue-100">{limitMessage}</p>
+                <Link
+                  href="/#pricing"
+                  className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
+                >
+                  View Pro plans
+                </Link>
+              </div>
+            )}
             {saveError && (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {saveError}
