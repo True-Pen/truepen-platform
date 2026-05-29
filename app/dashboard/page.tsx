@@ -141,9 +141,10 @@ export default async function DashboardPage() {
           {!recentError && recentAnalyses && recentAnalyses.length > 0 && (
             <div className="mt-4 space-y-3">
               {recentAnalyses.map((a) => (
-                <div
+                <Link
                   key={a.id}
-                  className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5"
+                  href={`/analysis/${a.id}`}
+                  className="block rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5 transition hover:border-blue-500/30 hover:bg-white/[0.06]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm font-medium text-white">
@@ -164,7 +165,10 @@ export default async function DashboardPage() {
                   <p className="mt-3 text-sm leading-relaxed text-zinc-400">
                     {previewText(a.text)}
                   </p>
-                </div>
+                  <p className="mt-3 text-xs font-medium text-blue-400">
+                    View details →
+                  </p>
+                </Link>
               ))}
             </div>
           )}
