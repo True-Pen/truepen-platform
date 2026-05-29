@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DownloadAnalysisPdfButton } from "@/components/download-analysis-pdf-button";
 import { LogoutButton } from "@/components/logout-button";
 import { MetricBar } from "@/components/metric-bar";
 import { TruePenBackground } from "@/components/truepen-background";
@@ -134,14 +135,24 @@ export default async function AnalysisDetailPage({
 
   return (
     <AnalysisShell>
-      <div className="mb-8">
-        <p className="text-sm font-medium text-blue-400">Analysis details</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-          Saved analysis
-        </h1>
-        <p className="mt-2 text-zinc-400">
-          Created {formatDateTime(analysis.created_at)}
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-blue-400">Analysis details</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            Saved analysis
+          </h1>
+          <p className="mt-2 text-zinc-400">
+            Created {formatDateTime(analysis.created_at)}
+          </p>
+        </div>
+        <DownloadAnalysisPdfButton
+          dateLabel={formatDateTime(analysis.created_at)}
+          text={analysis.text}
+          aiScore={analysis.ai_score}
+          humanScore={analysis.human_score}
+          academicScore={analysis.academic_score}
+          feedbackItems={feedbackItems}
+        />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
