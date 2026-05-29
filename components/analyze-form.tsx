@@ -50,17 +50,25 @@ const inputClass =
 
 export function AnalyzeForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
+
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
+
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const dragCounterRef = useRef(0);
+
+  const [resultMetrics, setResultMetrics] = useState(DEMO_METRICS);
+  const [resultFeedback, setResultFeedback] = useState(DEMO_FEEDBACK);
+  const [isAiPowered, setIsAiPowered] = useState(false);
+
+  const busy = loading || uploading;
 
   async function processFile(file: File) {
     setSelectedFileName(file.name);
@@ -77,7 +85,9 @@ export function AnalyzeForm() {
       setUploadedFileName(file.name);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Could not read this file. Please try again.";
+        err instanceof Error
+          ? err.message
+          : "Could not read this file. Please try again.";
       setUploadError(message);
     } finally {
       setUploading(false);
@@ -128,53 +138,125 @@ export function AnalyzeForm() {
 
   async function handleAnalyze() {
     if (!text.trim()) return;
+
     setLoading(true);
     setShowResults(false);
     setSaveError(null);
     setLimitMessage(null);
-
-    const aiScore = DEMO_METRICS[0]?.score ?? 0;
-    const humanScore = DEMO_METRICS[1]?.score ?? 0;
-    const academicScore = DEMO_METRICS[2]?.score ?? 0;
-    const feedback = DEMO_FEEDBACK.join("\n");
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    setResultMetrics(DEMO_METRICS);
+    setResultFeedback(DEMO_FEEDBACK);
+    setIsAiPowered(false);
 
     try {
       const supabase = createClient();
       const { data, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;
-      if (!data.user) throw new Error("You’re not signed in. Please sign in and try again.");
+      if (!data.user) {
+        throw new Error("You’re not signed in. Please sign in and try again.");
+      }
 
       if (await isAtFreeMonthlyLimit(supabase, data.user)) {
         setLimitMessage(FREE_LIMIT_MESSAGE);
-      } else {
-        const { error: insertError } = await supabase.from("analyses").insert({
-          user_id: data.user.id,
-          text,
-          ai_score: aiScore,
-          human_score: humanScore,
-          academic_score: academicScore,
-          feedback,
-        });
-
-        if (insertError) throw insertError;
-
-        await recordAnalysisUsage(supabase, data.user.id);
+        setShowResults(true);
+        return;
       }
+
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.error || "AI analysis failed. Please try again."
+        );
+      }
+
+      const aiResult = await response.json();
+
+      const aiScore = Math.max(
+        0,
+        Math.min(100, Number(aiResult.aiLikeness ?? 0))
+      );
+      const humanScore = Math.max(
+        0,
+        Math.min(100, Number(aiResult.humanAuthenticity ?? 0))
+      );
+      const academicScore = Math.max(
+        0,
+        Math.min(100, Number(aiResult.academicQuality ?? 0))
+      );
+
+      const feedbackItems = Array.isArray(aiResult.feedback)
+        ? aiResult.feedback.map(String)
+        : DEMO_FEEDBACK;
+
+      const nextMetrics = [
+        {
+          ...DEMO_METRICS[0],
+          score: aiScore,
+          description:
+            aiScore > 70
+              ? "High — this draft may contain AI-like patterns."
+              : aiScore > 40
+                ? "Medium — some parts may read AI-assisted."
+                : "Low — this draft reads mostly human-written.",
+        },
+        {
+          ...DEMO_METRICS[1],
+          score: humanScore,
+          description:
+            humanScore > 70
+              ? "High — voice and variation feel natural."
+              : humanScore > 40
+                ? "Medium — some parts could feel more personal."
+                : "Low — the writing may need more natural variation.",
+        },
+        {
+          ...DEMO_METRICS[2],
+          score: academicScore,
+          description:
+            academicScore > 70
+              ? "Good — structure and tone are on track."
+              : academicScore > 40
+                ? "Fair — academic structure could be stronger."
+                : "Needs work — improve clarity, structure, and argumentation.",
+        },
+      ];
+
+      setResultMetrics(nextMetrics);
+      setResultFeedback(feedbackItems);
+      setIsAiPowered(true);
+
+      const { error: insertError } = await supabase.from("analyses").insert({
+        user_id: data.user.id,
+        text,
+        ai_score: aiScore,
+        human_score: humanScore,
+        academic_score: academicScore,
+        feedback: feedbackItems.join("\n"),
+      });
+
+      if (insertError) throw insertError;
+
+      await recordAnalysisUsage(supabase, data.user.id);
+      setShowResults(true);
     } catch (e) {
       const message =
-        e instanceof Error ? e.message : "Saving failed. Please try again.";
+        e instanceof Error ? e.message : "Analysis failed. Please try again.";
       setSaveError(message);
+      setShowResults(true);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setShowResults(true);
   }
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const busy = loading || uploading;
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -202,6 +284,7 @@ export function AnalyzeForm() {
             onChange={handleFileSelect}
             disabled={busy}
           />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-white">Upload document</p>
@@ -209,6 +292,7 @@ export function AnalyzeForm() {
                 Drag & drop or choose a .docx / .pdf file
               </p>
             </div>
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -265,10 +349,14 @@ export function AnalyzeForm() {
           className={inputClass}
           disabled={uploading}
         />
+
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-500">
-            {wordCount > 0 ? `${wordCount} words` : "Minimum ~50 words recommended"}
+            {wordCount > 0
+              ? `${wordCount} words`
+              : "Minimum ~50 words recommended"}
           </p>
+
           <button
             type="button"
             onClick={handleAnalyze}
@@ -278,13 +366,17 @@ export function AnalyzeForm() {
             {loading ? "Analyzing…" : "Analyze"}
           </button>
         </div>
+
         <p className="mt-3 text-xs text-zinc-600">
-          Demo mode — scores are sample results, not powered by AI yet.
+          {isAiPowered
+            ? "AI-powered analysis is enabled."
+            : "Demo mode fallback is available if AI analysis fails."}
         </p>
       </div>
 
       <div>
         <h2 className="mb-4 text-sm font-medium text-white">Results</h2>
+
         {!showResults && !loading && (
           <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
             <p className="text-sm text-zinc-500">
@@ -292,17 +384,21 @@ export function AnalyzeForm() {
             </p>
           </div>
         )}
+
         {loading && (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-400" />
-            <p className="text-sm text-zinc-400">Running demo analysis…</p>
+            <p className="text-sm text-zinc-400">Running AI analysis…</p>
           </div>
         )}
+
         {showResults && !loading && (
           <div className="space-y-4">
             {limitMessage && (
               <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-4 py-4">
-                <p className="text-sm leading-relaxed text-blue-100">{limitMessage}</p>
+                <p className="text-sm leading-relaxed text-blue-100">
+                  {limitMessage}
+                </p>
                 <Link
                   href="/pricing"
                   className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
@@ -311,37 +407,50 @@ export function AnalyzeForm() {
                 </Link>
               </div>
             )}
+
             {saveError && (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {saveError}
               </div>
             )}
+
             <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5">
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-medium text-white">Analysis complete</span>
+                <span className="text-sm font-medium text-white">
+                  Analysis complete
+                </span>
                 <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                  Demo
+                  {isAiPowered ? "AI" : "Demo"}
                 </span>
               </div>
+
               <div className="space-y-4">
-                {DEMO_METRICS.map((metric) => (
+                {resultMetrics.map((metric) => (
                   <div
                     key={metric.label}
                     className="rounded-xl border border-white/[0.06] bg-[#0a0e18]/80 p-4"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm text-zinc-400">{metric.label}</span>
+                      <span className="text-sm text-zinc-400">
+                        {metric.label}
+                      </span>
                       <span className="text-sm font-semibold text-white">
                         {metric.score}
-                        <span className="font-normal text-zinc-500">/{metric.max}</span>
+                        <span className="font-normal text-zinc-500">
+                          /{metric.max}
+                        </span>
                       </span>
                     </div>
+
                     <MetricBar
                       score={metric.score}
                       max={metric.max}
                       accent={metric.accent}
                     />
-                    <p className="mt-2 text-xs text-zinc-500">{metric.description}</p>
+
+                    <p className="mt-2 text-xs text-zinc-500">
+                      {metric.description}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -350,7 +459,7 @@ export function AnalyzeForm() {
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
               <h3 className="text-sm font-medium text-white">Feedback</h3>
               <ul className="mt-3 space-y-2">
-                {DEMO_FEEDBACK.map((item) => (
+                {resultFeedback.map((item) => (
                   <li
                     key={item}
                     className="flex items-start gap-2 text-sm leading-relaxed text-zinc-400"
