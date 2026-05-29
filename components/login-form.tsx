@@ -47,8 +47,12 @@ export function LoginForm() {
           {error ?? "Authentication failed. Please try again."}
         </div>
       )}
+
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-sm font-medium text-zinc-300"
+        >
           Email
         </label>
         <input
@@ -62,8 +66,12 @@ export function LoginForm() {
           className={inputClass}
         />
       </div>
+
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-sm font-medium text-zinc-300"
+        >
           Password
         </label>
         <input
@@ -77,6 +85,16 @@ export function LoginForm() {
           className={inputClass}
         />
       </div>
+
+      <div className="text-right">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-medium text-blue-400 hover:text-blue-300"
+        >
+          Forgot password?
+        </Link>
+      </div>
+
       <button
         type="submit"
         disabled={loading}
@@ -84,9 +102,13 @@ export function LoginForm() {
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
+
       <p className="text-center text-sm text-zinc-500">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="font-medium text-blue-400 hover:text-blue-300">
+        <Link
+          href="/register"
+          className="font-medium text-blue-400 hover:text-blue-300"
+        >
           Create one
         </Link>
       </p>
