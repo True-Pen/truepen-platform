@@ -58,12 +58,12 @@ export function AnalyzeForm() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
+  async function processFile(file: File) {
+    setSelectedFileName(file.name);
     setUploading(true);
     setUploadError(null);
     setUploadedFileName(null);
@@ -82,6 +82,48 @@ export function AnalyzeForm() {
     } finally {
       setUploading(false);
     }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || busy) return;
+    void processFile(file);
+  }
+
+  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy) return;
+    dragCounterRef.current += 1;
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    if (busy) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    void processFile(file);
   }
 
   async function handleAnalyze() {
@@ -141,7 +183,17 @@ export function AnalyzeForm() {
           Your draft
         </label>
 
-        <div className="mb-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4">
+        <div
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          className={`mb-4 rounded-xl border border-dashed p-4 transition ${
+            isDragOver
+              ? "border-blue-500/60 bg-blue-500/10 ring-2 ring-blue-500/25"
+              : "border-white/10 bg-white/[0.02]"
+          } ${busy ? "opacity-60" : ""}`}
+        >
           <input
             ref={fileInputRef}
             type="file"
@@ -154,7 +206,7 @@ export function AnalyzeForm() {
             <div>
               <p className="text-sm font-medium text-white">Upload document</p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                .docx or .pdf — text will fill the box below
+                Drag & drop or choose a .docx / .pdf file
               </p>
             </div>
             <button
@@ -167,6 +219,21 @@ export function AnalyzeForm() {
             </button>
           </div>
 
+          {isDragOver && !busy && (
+            <p className="mt-3 text-center text-sm font-medium text-blue-300">
+              Drop your file here
+            </p>
+          )}
+
+          {(selectedFileName || uploadedFileName) && (
+            <p className="mt-3 text-sm text-zinc-400">
+              Selected file:{" "}
+              <span className="font-medium text-zinc-200">
+                {uploadedFileName ?? selectedFileName}
+              </span>
+            </p>
+          )}
+
           {uploading && (
             <div className="mt-3 flex items-center gap-2 text-sm text-blue-300">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-400" />
@@ -175,8 +242,8 @@ export function AnalyzeForm() {
           )}
 
           {!uploading && uploadedFileName && !uploadError && (
-            <p className="mt-3 text-sm text-emerald-400">
-              Loaded text from <span className="font-medium">{uploadedFileName}</span>
+            <p className="mt-2 text-sm text-emerald-400">
+              Text loaded successfully — ready to analyze
             </p>
           )}
 
