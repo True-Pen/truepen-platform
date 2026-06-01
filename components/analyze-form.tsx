@@ -11,6 +11,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { extractTextFromFile } from "@/lib/extract-document-text";
 
+const MAX_WORDS = 3000;
+
 const DEMO_METRICS = [
   {
     label: "AI-Likeness",
@@ -69,6 +71,8 @@ export function AnalyzeForm() {
   const [isAiPowered, setIsAiPowered] = useState(false);
 
   const busy = loading || uploading;
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const isOverWordLimit = wordCount > MAX_WORDS;
 
   async function processFile(file: File) {
     setSelectedFileName(file.name);
@@ -137,7 +141,7 @@ export function AnalyzeForm() {
   }
 
   async function handleAnalyze() {
-    if (!text.trim()) return;
+    if (!text.trim() || isOverWordLimit) return;
 
     setLoading(true);
     setShowResults(false);
@@ -256,8 +260,6 @@ export function AnalyzeForm() {
     }
   }
 
-  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <div>
@@ -351,16 +353,24 @@ export function AnalyzeForm() {
         />
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-zinc-500">
-            {wordCount > 0
-              ? `${wordCount} words`
-              : "Minimum ~50 words recommended"}
-          </p>
+          <div>
+            <p className="text-xs text-zinc-500">
+              {wordCount > 0
+                ? `${wordCount} / ${MAX_WORDS} words`
+                : "Recommended length: 1500–3000 words"}
+            </p>
+
+            {isOverWordLimit && (
+              <p className="mt-2 text-xs text-red-400">
+                Your text is too long. Please limit each analysis to 3000 words.
+              </p>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={busy || !text.trim()}
+            disabled={busy || !text.trim() || isOverWordLimit}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Analyzing…" : "Analyze"}
