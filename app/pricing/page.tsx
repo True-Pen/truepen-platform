@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { TruePenBackground } from "@/components/truepen-background";
 import { TruePenLogo } from "@/components/truepen-logo";
 
@@ -11,11 +14,11 @@ const plans = [
     features: [
       "3 analyses per month",
       "DOCX/PDF upload",
-      "Demo scoring",
+      "AI-powered scoring",
       "Analysis history",
     ],
     current: true,
-    cta: { label: "Current plan", href: null, disabled: true },
+    highlighted: false,
   },
   {
     name: "Pro",
@@ -25,19 +28,47 @@ const plans = [
     features: [
       "Unlimited analyses",
       "Priority processing",
-      "Future AI-powered scoring",
+      "AI-powered scoring",
       "Advanced feedback",
+      "PDF report export",
     ],
-    highlighted: true,
     current: false,
-    cta: { label: "Coming soon", href: null, disabled: true },
+    highlighted: true,
   },
 ];
 
 export default function PricingPage() {
+  const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  async function handleCheckout() {
+    setLoading(true);
+    setCheckoutError(null);
+
+    try {
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || "Could not start checkout.");
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error ? error.message : "Could not start checkout."
+      );
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#06080f] font-sans text-zinc-300">
       <TruePenBackground />
+
       <header className="relative z-10 border-b border-white/[0.06] bg-[#06080f]/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
           <TruePenLogo />
@@ -65,10 +96,16 @@ export default function PricingPage() {
             Simple, student-friendly plans
           </h1>
           <p className="mt-4 text-zinc-400">
-            Start free with 3 analyses per month. Pro unlocks unlimited analyses when
-            billing launches.
+            Start free with 3 analyses per month. Pro unlocks unlimited AI
+            analyses and premium reports.
           </p>
         </div>
+
+        {checkoutError && (
+          <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {checkoutError}
+          </div>
+        )}
 
         <div className="mx-auto mt-14 grid max-w-4xl gap-8 md:grid-cols-2">
           {plans.map((plan) => (
@@ -85,19 +122,24 @@ export default function PricingPage() {
                   Pro
                 </span>
               )}
+
               {plan.current && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">
                   Current plan
                 </span>
               )}
+
               <h2 className="text-lg font-semibold text-white">{plan.name}</h2>
+
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-4xl font-semibold tracking-tight text-white">
                   {plan.price}
                 </span>
                 <span className="text-sm text-zinc-500">{plan.period}</span>
               </div>
+
               <p className="mt-3 text-sm text-zinc-400">{plan.description}</p>
+
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((feature) => (
                   <li
@@ -109,25 +151,31 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled={plan.cta.disabled}
-                className={`mt-8 inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold transition ${
-                  plan.current
-                    ? "cursor-default border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                    : plan.highlighted
-                      ? "cursor-not-allowed border border-white/10 bg-white/[0.04] text-zinc-400"
-                      : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-                }`}
-              >
-                {plan.cta.label}
-              </button>
+
+              {plan.current ? (
+                <button
+                  type="button"
+                  disabled
+                  className="mt-8 inline-flex h-11 w-full cursor-default items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm font-semibold text-emerald-300"
+                >
+                  Current plan
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Opening checkout..." : "Upgrade to Pro"}
+                </button>
+              )}
             </div>
           ))}
         </div>
 
         <p className="mt-12 text-center text-sm text-zinc-500">
-          Payments are not enabled yet. Pro checkout will be available soon.
+          Secure checkout powered by Stripe. You can cancel anytime.
         </p>
 
         <p className="mt-6 text-center text-sm text-zinc-500">

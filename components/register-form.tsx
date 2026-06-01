@@ -23,6 +23,7 @@ export function RegisterForm() {
     setLoading(true);
 
     const supabase = createClient();
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -35,6 +36,20 @@ export function RegisterForm() {
       setError(signUpError.message);
       setLoading(false);
       return;
+    }
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        email: data.user.email,
+        plan: "free",
+      });
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
     }
 
     if (data.session) {
@@ -56,13 +71,18 @@ export function RegisterForm() {
           {error}
         </div>
       )}
+
       {message && (
         <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
           {message}
         </div>
       )}
+
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-sm font-medium text-zinc-300"
+        >
           Email
         </label>
         <input
@@ -76,8 +96,12 @@ export function RegisterForm() {
           className={inputClass}
         />
       </div>
+
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-sm font-medium text-zinc-300"
+        >
           Password
         </label>
         <input
@@ -92,6 +116,7 @@ export function RegisterForm() {
           className={inputClass}
         />
       </div>
+
       <button
         type="submit"
         disabled={loading}
@@ -99,9 +124,13 @@ export function RegisterForm() {
       >
         {loading ? "Creating account…" : "Create account"}
       </button>
+
       <p className="text-center text-sm text-zinc-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">
+        <Link
+          href="/login"
+          className="font-medium text-blue-400 hover:text-blue-300"
+        >
           Sign in
         </Link>
       </p>
