@@ -33,36 +33,33 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Webhook signature failed:", err);
 
-    return NextResponse.json(
-      { error: "Invalid signature" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-
       const userId = session.metadata?.user_id;
 
-      if (userId) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            plan: "pro",
-            stripe_customer_id: session.customer?.toString() ?? null,
-            stripe_subscription_id:
-              session.subscription?.toString() ?? null,
-          })
-          .eq("id", userId);
-
-        if (error) {
-          console.error("Supabase upgrade error:", error);
-          throw error;
-        }
-
-        console.log("User upgraded to PRO:", userId);
+      if (!userId) {
+        console.error("Missing user_id metadata on checkout session.");
+        return NextResponse.json({ received: true });
       }
+
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
+        email: session.customer_details?.email ?? null,
+        plan: "pro",
+        stripe_customer_id: session.customer?.toString() ?? null,
+        stripe_subscription_id: session.subscription?.toString() ?? null,
+      });
+
+      if (error) {
+        console.error("Supabase upgrade upsert error:", error);
+        throw error;
+      }
+
+      console.log("User upgraded to PRO:", userId);
     }
 
     if (event.type === "customer.subscription.updated") {
@@ -116,9 +113,6 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Webhook failed:", error);
 
-    return NextResponse.json(
-      { error: "Webhook failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Webhook failed" }, { status: 500 });
   }
 }
