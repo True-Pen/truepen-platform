@@ -148,6 +148,17 @@ export default async function AccountPage() {
                 View Pro plans
               </Link>
             )}
+
+            {isPro && (
+              <form action="/api/create-portal-session" method="POST">
+                <button
+                  type="submit"
+                  className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
+                >
+                  Manage subscription
+                </button>
+              </form>
+            )}
           </section>
 
           <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       const userId = session.metadata?.user_id;
 
       if (userId) {
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
             plan: "pro",
@@ -56,26 +56,65 @@ export async function POST(req: Request) {
           })
           .eq("id", userId);
 
+        if (error) {
+          console.error("Supabase upgrade error:", error);
+          throw error;
+        }
+
         console.log("User upgraded to PRO:", userId);
       }
+    }
+
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      const isActive =
+        subscription.status === "active" ||
+        subscription.status === "trialing";
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          plan: isActive ? "pro" : "free",
+          stripe_subscription_id: subscription.id,
+        })
+        .eq("stripe_subscription_id", subscription.id);
+
+      if (error) {
+        console.error("Supabase subscription update error:", error);
+        throw error;
+      }
+
+      console.log(
+        "Subscription updated:",
+        subscription.id,
+        "status:",
+        subscription.status,
+      );
     }
 
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object as Stripe.Subscription;
 
-      await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({
           plan: "free",
+          stripe_subscription_id: null,
         })
         .eq("stripe_subscription_id", subscription.id);
+
+      if (error) {
+        console.error("Supabase cancellation error:", error);
+        throw error;
+      }
 
       console.log("Subscription cancelled:", subscription.id);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(error);
+    console.error("Webhook failed:", error);
 
     return NextResponse.json(
       { error: "Webhook failed" },
