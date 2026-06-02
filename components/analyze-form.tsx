@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DownloadAnalysisPdfButton } from "@/components/download-analysis-pdf-button";
 import { MetricBar } from "@/components/metric-bar";
 import { FREE_LIMIT_MESSAGE } from "@/lib/analysis-limits";
 import {
@@ -69,10 +70,32 @@ export function AnalyzeForm() {
   const [resultMetrics, setResultMetrics] = useState(DEMO_METRICS);
   const [resultFeedback, setResultFeedback] = useState(DEMO_FEEDBACK);
   const [isAiPowered, setIsAiPowered] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   const busy = loading || uploading;
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const isOverWordLimit = wordCount > MAX_WORDS;
+
+  useEffect(() => {
+    async function loadPlan() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", user.id)
+        .single();
+
+      setIsPro(profile?.plan === "pro");
+    }
+
+    void loadPlan();
+  }, []);
 
   async function processFile(file: File) {
     setSelectedFileName(file.name);
@@ -160,7 +183,16 @@ export function AnalyzeForm() {
         throw new Error("You’re not signed in. Please sign in and try again.");
       }
 
-      if (await isAtFreeMonthlyLimit(supabase, data.user)) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", data.user.id)
+        .single();
+
+      const currentIsPro = profile?.plan === "pro";
+      setIsPro(currentIsPro);
+
+      if (!currentIsPro && (await isAtFreeMonthlyLimit(supabase, data.user))) {
         setLimitMessage(FREE_LIMIT_MESSAGE);
         setShowResults(true);
         return;
@@ -177,7 +209,7 @@ export function AnalyzeForm() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(
-          errorData?.error || "AI analysis failed. Please try again."
+          errorData?.error || "AI analysis failed. Please try again.",
         );
       }
 
@@ -185,15 +217,15 @@ export function AnalyzeForm() {
 
       const aiScore = Math.max(
         0,
-        Math.min(100, Number(aiResult.aiLikeness ?? 0))
+        Math.min(100, Number(aiResult.aiLikeness ?? 0)),
       );
       const humanScore = Math.max(
         0,
-        Math.min(100, Number(aiResult.humanAuthenticity ?? 0))
+        Math.min(100, Number(aiResult.humanAuthenticity ?? 0)),
       );
       const academicScore = Math.max(
         0,
-        Math.min(100, Number(aiResult.academicQuality ?? 0))
+        Math.min(100, Number(aiResult.academicQuality ?? 0)),
       );
 
       const feedbackItems = Array.isArray(aiResult.feedback)
@@ -260,12 +292,16 @@ export function AnalyzeForm() {
     }
   }
 
+  const aiScore = resultMetrics[0]?.score ?? 0;
+  const humanScore = resultMetrics[1]?.score ?? 0;
+  const academicScore = resultMetrics[2]?.score ?? 0;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
       <div>
-        <label htmlFor="draft" className="mb-2 block text-sm font-medium text-zinc-300">
-          Your draft
-        </label>
+        <div className="mb-3 flex items-center justify-between">
+          <label className="text-sm font-medium text-white">Your draft</label>
+        </div>
 
         <div
           onDragEnter={handleDragEnter}
@@ -274,9 +310,9 @@ export function AnalyzeForm() {
           onDrop={handleDrop}
           className={`mb-4 rounded-xl border border-dashed p-4 transition ${
             isDragOver
-              ? "border-blue-500/60 bg-blue-500/10 ring-2 ring-blue-500/25"
-              : "border-white/10 bg-white/[0.02]"
-          } ${busy ? "opacity-60" : ""}`}
+              ? "border-blue-500/70 bg-blue-500/10"
+              : "border-white/10 bg-white/[0.03]"
+          }`}
         >
           <input
             ref={fileInputRef}
@@ -284,85 +320,83 @@ export function AnalyzeForm() {
             accept={ACCEPTED_TYPES}
             className="hidden"
             onChange={handleFileSelect}
-            disabled={busy}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-white">Upload document</p>
-              <p className="mt-0.5 text-xs text-zinc-500">
+              <p className="text-sm font-semibold text-white">
+                Upload document
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
                 Drag & drop or choose a .docx / .pdf file
               </p>
+
+              {selectedFileName && (
+                <p className="mt-3 text-xs text-zinc-400">
+                  Selected file:{" "}
+                  <span className="text-zinc-200">{selectedFileName}</span>
+                </p>
+              )}
+
+              {uploading && (
+                <p className="mt-2 text-xs text-blue-300">
+                  Reading document…
+                </p>
+              )}
+
+              {uploadedFileName && !uploading && (
+                <p className="mt-2 text-xs text-emerald-400">
+                  Text loaded successfully — ready to analyze
+                </p>
+              )}
+
+              {uploadError && (
+                <p className="mt-2 text-xs text-red-300">{uploadError}</p>
+              )}
             </div>
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
               disabled={busy}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-zinc-200 transition hover:border-blue-500/40 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.1] disabled:opacity-50"
             >
-              {uploading ? "Extracting…" : "Choose file"}
+              Choose file
             </button>
           </div>
-
-          {isDragOver && !busy && (
-            <p className="mt-3 text-center text-sm font-medium text-blue-300">
-              Drop your file here
-            </p>
-          )}
-
-          {(selectedFileName || uploadedFileName) && (
-            <p className="mt-3 text-sm text-zinc-400">
-              Selected file:{" "}
-              <span className="font-medium text-zinc-200">
-                {uploadedFileName ?? selectedFileName}
-              </span>
-            </p>
-          )}
-
-          {uploading && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-blue-300">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-400" />
-              Extracting text from your document…
-            </div>
-          )}
-
-          {!uploading && uploadedFileName && !uploadError && (
-            <p className="mt-2 text-sm text-emerald-400">
-              Text loaded successfully — ready to analyze
-            </p>
-          )}
-
-          {uploadError && (
-            <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {uploadError}
-            </div>
-          )}
         </div>
 
         <textarea
-          id="draft"
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            if (uploadError) setUploadError(null);
+            setShowResults(false);
+            setSaveError(null);
+            setLimitMessage(null);
           }}
-          placeholder="Paste your essay, report, or assignment here…"
+          placeholder="Paste your academic text here..."
           className={inputClass}
-          disabled={uploading}
         />
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs text-zinc-500">
-              {wordCount > 0
-                ? `${wordCount} / ${MAX_WORDS} words`
-                : "Recommended length: 1500–3000 words"}
+            <p
+              className={`text-sm ${
+                isOverWordLimit ? "text-red-300" : "text-zinc-500"
+              }`}
+            >
+              {wordCount} / {MAX_WORDS} words
             </p>
 
             {isOverWordLimit && (
-              <p className="mt-2 text-xs text-red-400">
-                Your text is too long. Please limit each analysis to 3000 words.
+              <p className="mt-1 text-xs text-red-300">
+                Your text is too long. Please shorten it before analyzing.
+              </p>
+            )}
+
+            {!isAiPowered && !saveError && !limitMessage && (
+              <p className="mt-3 text-xs text-zinc-600">
+                AI-powered analysis is enabled.
               </p>
             )}
           </div>
@@ -370,60 +404,37 @@ export function AnalyzeForm() {
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={busy || !text.trim() || isOverWordLimit}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!text.trim() || busy || isOverWordLimit}
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500 disabled:opacity-50"
           >
             {loading ? "Analyzing…" : "Analyze"}
           </button>
         </div>
-
-        <p className="mt-3 text-xs text-zinc-600">
-          {isAiPowered
-            ? "AI-powered analysis is enabled."
-            : "Demo mode fallback is available if AI analysis fails."}
-        </p>
       </div>
 
       <div>
-        <h2 className="mb-4 text-sm font-medium text-white">Results</h2>
+        <h2 className="mb-3 text-sm font-medium text-white">Results</h2>
 
-        {!showResults && !loading && (
-          <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
-            <p className="text-sm text-zinc-500">
-              Paste or upload your text, then click Analyze to see scores and feedback.
-            </p>
+        {limitMessage && (
+          <div className="mb-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 text-sm text-blue-100">
+            <p>{limitMessage}</p>
+            <Link
+              href="/pricing"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white"
+            >
+              Upgrade to Pro
+            </Link>
           </div>
         )}
 
-        {loading && (
-          <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-400" />
-            <p className="text-sm text-zinc-400">Running AI analysis…</p>
+        {saveError && (
+          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-200">
+            {saveError}
           </div>
         )}
 
-        {showResults && !loading && (
+        {showResults && (
           <div className="space-y-4">
-            {limitMessage && (
-              <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-4 py-4">
-                <p className="text-sm leading-relaxed text-blue-100">
-                  {limitMessage}
-                </p>
-                <Link
-                  href="/pricing"
-                  className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
-                >
-                  View Pro plans
-                </Link>
-              </div>
-            )}
-
-            {saveError && (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {saveError}
-              </div>
-            )}
-
             <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5">
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-sm font-medium text-white">
@@ -467,7 +478,27 @@ export function AnalyzeForm() {
             </div>
 
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
-              <h3 className="text-sm font-medium text-white">Feedback</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-medium text-white">Feedback</h3>
+
+                {isPro && (
+                  <DownloadAnalysisPdfButton
+                    dateLabel={new Date().toLocaleDateString()}
+                    text={text}
+                    aiScore={aiScore}
+                    humanScore={humanScore}
+                    academicScore={academicScore}
+                    feedbackItems={resultFeedback}
+                  />
+                )}
+              </div>
+
+              {!isPro && (
+                <div className="mt-3 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                  PDF export is available on the Pro plan.
+                </div>
+              )}
+
               <ul className="mt-3 space-y-2">
                 {resultFeedback.map((item) => (
                   <li
