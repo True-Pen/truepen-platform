@@ -28,7 +28,38 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-screen flex flex-col">
+        <main className="flex-1">{children}</main>
+
+        <footer className="border-t border-white/5 bg-[#06080f] py-6">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-zinc-500 md:flex-row">
+            <p>© 2026 TruePen. All rights reserved.</p>
+
+            <div className="flex items-center gap-6">
+              <a
+                href="/support"
+                className="transition hover:text-white"
+              >
+                Support
+              </a>
+
+              <a
+                href="/privacy"
+                className="transition hover:text-white"
+              >
+                Privacy Policy
+              </a>
+
+              <a
+                href="/terms"
+                className="transition hover:text-white"
+              >
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </footer>
+      </body>
     </html>
   );
 }
