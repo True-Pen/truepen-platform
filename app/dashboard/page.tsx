@@ -46,20 +46,19 @@ export default async function DashboardPage() {
       getMonthlyUsageCount(supabase, user.id).catch(() => 0),
     ]);
 
-  if (recentError) {
-    // If reads fail, keep the dashboard usable (logout + analyze) and show a small warning.
-    // We intentionally avoid throwing to prevent a hard error screen.
-  }
-
   const latest = recentAnalyses?.[0];
-  const latestDate = latest?.created_at ? formatShortDate(latest.created_at) : "—";
+  const latestDate = latest?.created_at
+    ? formatShortDate(latest.created_at)
+    : "—";
 
   return (
     <div className="min-h-screen bg-[#06080f] font-sans text-zinc-300">
       <TruePenBackground />
+
       <header className="relative z-10 border-b border-white/[0.06] bg-[#06080f]/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
           <TruePenLogo />
+
           <div className="flex items-center gap-3">
             <Link
               href="/account"
@@ -67,12 +66,21 @@ export default async function DashboardPage() {
             >
               Account
             </Link>
+
+            <Link
+              href="/support"
+              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white sm:inline-block"
+            >
+              Support
+            </Link>
+
             <Link
               href="/pricing"
               className="hidden rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white md:inline-block"
             >
               Pricing
             </Link>
+
             <LogoutButton />
           </div>
         </nav>
@@ -100,13 +108,18 @@ export default async function DashboardPage() {
             {
               label: "Last analysis",
               value: latestDate,
-              hint: latest ? "Your most recent saved run" : "Run your first analysis",
+              hint: latest
+                ? "Your most recent saved run"
+                : "Run your first analysis",
             },
             {
               label: "Plan",
               value: "Free",
               hint: (
-                <Link href="/pricing" className="text-blue-400 hover:text-blue-300">
+                <Link
+                  href="/pricing"
+                  className="text-blue-400 hover:text-blue-300"
+                >
                   View Pro plans →
                 </Link>
               ),
@@ -117,7 +130,9 @@ export default async function DashboardPage() {
               className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"
             >
               <p className="text-sm text-zinc-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{stat.value}</p>
+              <p className="mt-2 text-3xl font-semibold text-white">
+                {stat.value}
+              </p>
               <p className="mt-1 text-xs text-zinc-500">{stat.hint}</p>
             </div>
           ))}
@@ -126,6 +141,7 @@ export default async function DashboardPage() {
         <section className="mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-white">Recent analyses</h2>
+
             <Link
               href="/analyze"
               className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-400 hover:to-indigo-500"
@@ -149,11 +165,14 @@ export default async function DashboardPage() {
         </section>
 
         <div className="mt-8 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 text-center">
-          <h2 className="text-xl font-semibold text-white">Start your first analysis</h2>
+          <h2 className="text-xl font-semibold text-white">
+            Start your first analysis
+          </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
-            Paste or upload an essay to see AI-likeness, authenticity, and academic
-            quality scores.
+            Paste or upload an essay to see AI-likeness, authenticity, and
+            academic quality scores.
           </p>
+
           <Link
             href="/analyze"
             className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-400 hover:to-indigo-500"
